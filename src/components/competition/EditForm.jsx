@@ -38,7 +38,7 @@ export default class EditForm extends Component {
     const dateFormat = 'YYYY/MM/DD';
     const { id } = this.props;
     const response = await post('/competition/find', {
-      id,
+      competitionId: id,
     });
     const temp = { ...response.data.competition };
     let { start_time, end_time } = response.data.competition;

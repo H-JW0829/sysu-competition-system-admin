@@ -21,7 +21,7 @@ export default class Editor extends Component {
   fetchData = async () => {
     const { id } = this.props;
     const response = await post('/competition/find', {
-      id,
+      competitionId: id,
     });
     this.setState({
       editorState: BraftEditor.createEditorState(
