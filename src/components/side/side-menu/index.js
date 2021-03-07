@@ -45,14 +45,18 @@ export default class SideMenu extends Component {
         text: '用户管理',
         icon: 'user',
         path: '/home/users',
-        order: 900,
       },
       {
         key: 'competition',
         text: '竞赛管理',
         icon: 'align-left',
         path: '/home/competitions',
-        order: 900,
+      },
+      {
+        key: 'appendix',
+        text: '作品管理',
+        icon: 'book',
+        path: '/home/appendixes',
       },
     ];
     if (dataSource && dataSource.length) {

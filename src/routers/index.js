@@ -4,6 +4,7 @@ import Users from '../pages/Users';
 import Competition from '../components/competition';
 import NotFound from '../pages/NotFound';
 import Register from '../pages/Register';
+import Appendix from '../pages/appendix';
 
 let routes = [
   {
@@ -34,6 +35,11 @@ let routes = [
       {
         path: '/competitions',
         component: Competition,
+        exact: true,
+      },
+      {
+        path: '/appendixes',
+        component: Appendix,
         exact: true,
       },
     ],

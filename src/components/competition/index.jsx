@@ -142,10 +142,9 @@ export default class UserCenter extends Component {
       return;
     }
     const { organizer, title, status } = values;
-    console.log(values);
     if (!organizer && !title && !status) return;
     const competitions = [...this.state.COMPETITIONS];
-    let result = competitions.filter((competition) => {
+    const result = competitions.filter((competition) => {
       if (organizer) {
         if (competition.organizer.indexOf(organizer) === -1) {
           return false;
@@ -156,7 +155,6 @@ export default class UserCenter extends Component {
           return false;
         }
       }
-      console.log(competition.status, status, 'xxx');
       if (status) {
         if (status === '3') {
           //成绩未发布

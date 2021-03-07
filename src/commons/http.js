@@ -39,10 +39,10 @@ export const get = (url, params = {}) => {
   });
 };
 
-export const post = (url, data = {}) => {
+export const post = (url, data = {}, isCDN = false) => {
   return new Promise((resolve, reject) => {
     axios
-      .post(`${BASE_URL}${url}`, qs.stringify({ ...data }))
+      .post(`${isCDN ? '' : BASE_URL}${url}`, qs.stringify({ ...data }))
       .then(
         (response) => {
           resolve(response.data);
