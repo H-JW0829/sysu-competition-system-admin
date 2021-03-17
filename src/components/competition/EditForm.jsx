@@ -8,11 +8,15 @@ import {
   message,
   DatePicker,
   InputNumber,
+  Upload,
+  Modal,
 } from 'antd';
 import { get, post } from '../../commons/http';
 import { publicEncrypt } from 'crypto';
+import { UploadOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import styles from './style.less';
 import moment from 'moment';
+const { confirm } = Modal;
 
 const { RangePicker } = DatePicker;
 // const { Option } = Select;
@@ -28,6 +32,7 @@ const tailLayout = {
 export default class EditForm extends Component {
   state = {
     competition: {},
+    fileList: [],
   };
 
   componentDidMount() {
@@ -47,7 +52,10 @@ export default class EditForm extends Component {
       moment(start_time.replace('-', '/'), dateFormat),
       moment(end_time.replace('-', '/'), dateFormat),
     ];
-    this.setState({ competition: response.data.competition });
+    this.setState({
+      competition: response.data.competition,
+      fileList: response.data.competition.fileList || [],
+    });
     this.form.setFieldsValue(temp);
   };
 
@@ -62,6 +70,7 @@ export default class EditForm extends Component {
       max_people,
       score_teacher,
     } = values;
+    const { fileList } = this.state;
     if (max_people < min_people) {
       message.error('最大人数限制不能小于最小人数限制', 1);
       return;
@@ -79,6 +88,7 @@ export default class EditForm extends Component {
       min_people,
       score_teacher,
       id: this.props.id,
+      fileList,
     });
     if (response.code === 0) {
       message.success('修改成功', 2);
@@ -86,6 +96,52 @@ export default class EditForm extends Component {
         this.props.updateSuccess();
       }, 1000);
     }
+  };
+
+  handleChange = async (info) => {
+    const fileUrl = info.file?.response?.data?.url;
+    if (fileUrl) {
+      let fileList = [...this.state.fileList];
+      let file = {
+        uid: info.file.uid,
+        name: info.file.name,
+        url: fileUrl,
+      };
+      fileList.push(file);
+      this.setState({ fileList });
+      message.success('上传成功', 1);
+    }
+  };
+
+  removeFile = (info) => {
+    const { uid, url } = info;
+    const _this = this;
+    confirm({
+      title: '您确定要删除吗？',
+      icon: <ExclamationCircleOutlined />,
+      okText: '确定',
+      cancelText: '取消',
+      onOk() {
+        const deleteFile = async () => {
+          const cdnResponse = await post(
+            `http://localhost:3001/uploadToGuochuangyun?s=App.CDN.Delete&app_key=5687BCD24AA4D3C1ED073F5C8AC17C6B&url=${url}`,
+            {},
+            true
+          );
+          if (cdnResponse.ret === 200) {
+            //cdn删除成功，删除数据库
+            const fileList = _this.state.fileList.filter((item) => {
+              return item.uid !== uid;
+            });
+            _this.setState({ fileList });
+            message.success('删除成功', 1);
+          } else {
+            message.error('删除失败，请稍后尝试', 1);
+          }
+        };
+        deleteFile();
+      },
+    });
   };
 
   render() {
@@ -113,22 +169,6 @@ export default class EditForm extends Component {
           >
             <Input />
           </Form.Item>
-
-          {/* <Form.Item
-            label="开始时间"
-            name="start_time"
-            rules={[{ required: true, message: '请输入开始时间' }]}
-          >
-            <Input />
-          </Form.Item>
-
-          <Form.Item
-            label="结束时间"
-            name="end_time"
-            rules={[{ required: true, message: '请输入结束时间' }]}
-          >
-            <Input />
-          </Form.Item> */}
 
           <Form.Item
             label="时间"
@@ -184,6 +224,18 @@ export default class EditForm extends Component {
             </Button>
           </Form.Item>
         </Form>
+        <div style={{ position: 'relative', left: '40px' }}>
+          <Upload
+            showUploadList={true}
+            method="post"
+            action="http://localhost:3001/uploadToGuochuangyun?s=App.CDN.UploadOffice&app_key=5687BCD24AA4D3C1ED073F5C8AC17C6B&sign=wtOVTtR1veX4VVwgSkYMf0Ur9YVHsifAhGl55hbXMrQbwGKWkPmBAEHoo5ydejQncZWI5b"
+            onChange={this.handleChange}
+            fileList={this.state.fileList}
+            onRemove={this.removeFile}
+          >
+            <Button icon={<UploadOutlined />}>附件</Button>
+          </Upload>
+        </div>
       </div>
     );
   }

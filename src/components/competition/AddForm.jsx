@@ -8,12 +8,16 @@ import {
   message,
   DatePicker,
   InputNumber,
+  Upload,
+  Modal,
 } from 'antd';
 import { get, post } from '../../commons/http';
+import { UploadOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import { publicEncrypt } from 'crypto';
 import Editor from './Editor';
 import moment from 'moment';
 
+const { confirm } = Modal;
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 
@@ -28,6 +32,7 @@ const tailLayout = {
 export default class EditForm extends Component {
   state = {
     user: {},
+    fileList: [],
   };
 
   componentDidMount() {}
@@ -44,20 +49,19 @@ export default class EditForm extends Component {
       max,
       scoreTeacher,
     } = values;
+    const { fileList } = this.state;
     if (max < min) {
       message.error('最大人数限制不能小于最小人数限制', 1);
       return;
     }
     const start_time = moment(time[0].format('YYYY-MM-DD'))._i;
     const end_time = moment(time[1].format('YYYY-MM-DD'))._i;
-    console.log('rrrr');
     let tagsArr = tags
       .trim()
       .split(' ')
       .filter((tag) => {
         return tag !== '';
       });
-    console.log(tagsArr, 'rrrr');
     const response = await post('/competition/add', {
       title,
       desc,
@@ -70,6 +74,7 @@ export default class EditForm extends Component {
       max_people: max,
       min_people: min,
       score_teacher: scoreTeacher,
+      fileList,
     });
     if (response.code === 0) {
       message.success('添加成功', 1);
@@ -79,6 +84,52 @@ export default class EditForm extends Component {
     } else {
       message.error('添加失败，请稍后尝试', 1);
     }
+  };
+
+  handleChange = async (info) => {
+    const fileUrl = info.file?.response?.data?.url;
+    if (fileUrl) {
+      let fileList = [...this.state.fileList];
+      let file = {
+        uid: info.file.uid,
+        name: info.file.name,
+        url: fileUrl,
+      };
+      fileList.push(file);
+      this.setState({ fileList });
+      message.success('上传成功', 1);
+    }
+  };
+
+  removeFile = (info) => {
+    const { uid, url } = info;
+    const _this = this;
+    confirm({
+      title: '您确定要删除吗？',
+      icon: <ExclamationCircleOutlined />,
+      okText: '确定',
+      cancelText: '取消',
+      onOk() {
+        const deleteFile = async () => {
+          const cdnResponse = await post(
+            `http://localhost:3001/uploadToGuochuangyun?s=App.CDN.Delete&app_key=5687BCD24AA4D3C1ED073F5C8AC17C6B&url=${url}`,
+            {},
+            true
+          );
+          if (cdnResponse.ret === 200) {
+            //cdn删除成功，删除数据库
+            const fileList = _this.state.fileList.filter((item) => {
+              return item.uid !== uid;
+            });
+            _this.setState({ fileList });
+            message.success('删除成功', 1);
+          } else {
+            message.error('删除失败，请稍后尝试', 1);
+          }
+        };
+        deleteFile();
+      },
+    });
   };
 
   render() {
@@ -136,6 +187,7 @@ export default class EditForm extends Component {
           <Form.Item
             label="评分教师"
             name="scoreTeacher"
+            validateFirst={true}
             rules={[
               { required: true, message: '请填写评分教师职工号' },
               ({ getFieldValue }) => ({
@@ -189,6 +241,18 @@ export default class EditForm extends Component {
             </Button>
           </Form.Item>
         </Form>
+        <div style={{ position: 'relative', left: '235px' }}>
+          <Upload
+            showUploadList={true}
+            method="post"
+            action="http://localhost:3001/uploadToGuochuangyun?s=App.CDN.UploadOffice&app_key=5687BCD24AA4D3C1ED073F5C8AC17C6B&sign=wtOVTtR1veX4VVwgSkYMf0Ur9YVHsifAhGl55hbXMrQbwGKWkPmBAEHoo5ydejQncZWI5b"
+            onChange={this.handleChange}
+            fileList={this.state.fileList}
+            onRemove={this.removeFile}
+          >
+            <Button icon={<UploadOutlined />}>附件</Button>
+          </Upload>
+        </div>
       </div>
     );
   }

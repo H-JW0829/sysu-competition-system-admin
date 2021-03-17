@@ -40,6 +40,7 @@ export default class Appendix extends Component {
       key: 'appendix',
       render: (text, record) => {
         const { appendix } = record;
+        console.log(appendix, 'sssdasd');
         return appendix.url ? (
           <Space size="middle">
             {/* <a onClick={() => this.edit(record._id)}>aaa</a> */}
@@ -72,6 +73,8 @@ export default class Appendix extends Component {
                   {
                     competitionId: record.competition.id,
                     teamId: record.team.id,
+                    appendixId: record.appendix._id,
+                    key: record.key,
                   },
                   info
                 );
@@ -129,6 +132,7 @@ export default class Appendix extends Component {
   };
 
   delete = (info) => {
+    const _this = this;
     confirm({
       title: '您确定要删除吗？',
       icon: <ExclamationCircleOutlined />,
@@ -144,10 +148,17 @@ export default class Appendix extends Component {
           if (cdnResponse.ret === 200) {
             //cdn删除成功，删除数据库
             const response = await post('/competition/deleteAppendix', {
-              competitionId: info.competition.id,
-              teamId: info.team.id,
+              appendixId: info.appendix._id,
             });
             if (response.code === 0) {
+              console.log(_this.state.appendixes, '666');
+              const appendixes = [..._this.state.appendixes];
+              appendixes.forEach((item) => {
+                if (item.appendix._id === info.appendix._id) {
+                  item.appendix = {};
+                }
+              });
+              _this.setState({ appendixes });
               message.success('删除成功', 1);
             } else {
               message.warning('删除失败，请稍后尝试', 1);
@@ -167,22 +178,56 @@ export default class Appendix extends Component {
   handleChange = async (submitInfo, info) => {
     const fileUrl = info.file?.response?.data?.url;
     if (fileUrl) {
-      const { competitionId, teamId } = submitInfo;
-      const response = await post(`/competition/submitAppendix`, {
-        competitionId,
-        teamId,
-        appendix: {
-          name: info.file.name,
-          url: fileUrl,
-          fileType: info.file.type,
-          uid: info.file.uid,
-          size: info.file.size,
-        },
-      });
-      if (response.code === 0) {
-        message.success('上传成功', 1);
+      const { competitionId, teamId, appendixId, key } = submitInfo;
+      if (appendixId) {
+        const response = await post(`/competition/updateAppendix`, {
+          newAppendix: {
+            name: info.file.name,
+            url: fileUrl,
+            fileType: info.file.type,
+            uid: info.file.uid,
+            size: info.file.size,
+            id: appendixId,
+          },
+        });
+        if (response.code === 0) {
+          const appendix = response.data.appendix;
+          const appendixes = [...this.state.appendixes];
+          appendixes.forEach((item) => {
+            if (item.key === key) {
+              item.appendix = { ...appendix };
+            }
+          });
+          this.setState({ appendixes });
+          message.success('上传成功', 1);
+        } else {
+          message.error('上传失败', 1);
+        }
       } else {
-        message.error('上传失败', 1);
+        const response = await post(`/competition/submitAppendix`, {
+          competitionId,
+          teamId,
+          newAppendix: {
+            name: info.file.name,
+            url: fileUrl,
+            fileType: info.file.type,
+            uid: info.file.uid,
+            size: info.file.size,
+          },
+        });
+        if (response.code === 0) {
+          const appendix = response.data.appendix;
+          const appendixes = [...this.state.appendixes];
+          appendixes.forEach((item) => {
+            if (item.key === key) {
+              item.appendix = { ...appendix };
+            }
+          });
+          this.setState({ appendixes });
+          message.success('上传成功', 1);
+        } else {
+          message.error('上传失败', 1);
+        }
       }
     }
   };
